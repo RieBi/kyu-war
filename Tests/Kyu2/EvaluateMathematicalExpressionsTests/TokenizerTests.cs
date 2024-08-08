@@ -51,4 +51,22 @@ public class TokenizerTests
         Assert.Equal(expected, actual?.value);
         Assert.True(expected == null || actual?.Kind == TokenKind.BinaryOperator);
     }
+
+    [Theory]
+    [InlineData("logn", "log")]
+    [InlineData("Ln", "ln")]
+    [InlineData("ExP", "exp")]
+    [InlineData("Sq_rt", null)]
+    [InlineData("ABStraction", "abs")]
+    [InlineData("sIn", "sin")]
+    [InlineData("AsiN", "asin")]
+    public void ParseFunction_ReturnsOnlyFunction(string input, string? expected)
+    {
+        var tokenizer = new Tokenizer(input);
+
+        var actual = tokenizer.ParseFunction();
+
+        Assert.Equal(expected, actual?.value);
+        Assert.True(expected == null || actual?.Kind == TokenKind.Function);
+    }
 }

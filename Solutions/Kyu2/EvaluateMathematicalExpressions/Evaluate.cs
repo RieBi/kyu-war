@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 
 public class Evaluate
 {
@@ -29,6 +30,7 @@ public class Tokenizer(string source)
     private static readonly ImmutableHashSet<char> numberSign = ['+', '-'];
     private static readonly ImmutableHashSet<char> binaryOperator = ['+', '-', '*', '/', '&'];
     private static readonly ImmutableHashSet<char> scientificNotationSeparator = ['e', 'E'];
+    private static readonly ImmutableHashSet<string> function = ["log", "ln", "exp", "sqrt", "abs", "atan", "acos", "asin", "sinh", "cosh", "tanh", "tan", "sin", "cos"];
     const char decimalSeparator = '.';
     const char openingParenthese = '(';
     const char closingParenthese = ')';
@@ -122,6 +124,29 @@ public class Tokenizer(string source)
             var result = new Token(TokenKind.BinaryOperator, At().ToString());
             _pos++;
             return result;
+        }
+
+        return null;
+    }
+
+    public Token? ParseFunction()
+    {
+        var start = _pos;
+        var maxLength = function.Max(f => f.Length);
+
+        var pos = _pos;
+        for (int i = 0; i < maxLength; i++)
+        {
+            if (!char.IsAsciiLetter(At(pos)))
+                return null;
+
+            pos++;
+            var substr = _source[start..pos].ToLowerInvariant();
+            if (function.Contains(substr))
+            {
+                _pos = pos;
+                return new(TokenKind.Function, substr);
+            }
         }
 
         return null;
