@@ -34,4 +34,21 @@ public class TokenizerTests
         Assert.Equal(expected, actual?.value);
         Assert.True(expected == null || actual?.Kind == TokenKind.OpeningParenthese || actual?.Kind == TokenKind.ClosingParenthese);
     }
+
+    [Theory]
+    [InlineData("+123", "+")]
+    [InlineData("-", "-")]
+    [InlineData("**", "*")]
+    [InlineData("/123", "/")]
+    [InlineData("&123", "&")]
+    [InlineData("123", null)]
+    public void ParseBinaryOperator_ReturnsOnlyOperator(string input, string? expected)
+    {
+        var tokenizer = new Tokenizer(input);
+
+        var actual = tokenizer.ParseBinaryOperator();
+
+        Assert.Equal(expected, actual?.value);
+        Assert.True(expected == null || actual?.Kind == TokenKind.BinaryOperator);
+    }
 }

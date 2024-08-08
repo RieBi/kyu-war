@@ -27,6 +27,7 @@ public record Token(TokenKind Kind, string value);
 public class Tokenizer(string source)
 {
     private static readonly ImmutableHashSet<char> numberSign = ['+', '-'];
+    private static readonly ImmutableHashSet<char> binaryOperator = ['+', '-', '*', '/', '&'];
     private static readonly ImmutableHashSet<char> scientificNotationSeparator = ['e', 'E'];
     const char decimalSeparator = '.';
     const char openingParenthese = '(';
@@ -109,6 +110,18 @@ public class Tokenizer(string source)
         {
             _pos++;
             return new(TokenKind.ClosingParenthese, closingParenthese.ToString());
+        }
+
+        return null;
+    }
+
+    public Token? ParseBinaryOperator()
+    {
+        if (binaryOperator.Contains(At()))
+        {
+            var result = new Token(TokenKind.BinaryOperator, At().ToString());
+            _pos++;
+            return result;
         }
 
         return null;
