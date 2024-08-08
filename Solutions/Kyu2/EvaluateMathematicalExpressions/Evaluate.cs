@@ -23,7 +23,7 @@ public enum TokenKind
     ClosingParenthese
 }
 
-public record Token(TokenKind Kind, string value);
+public record Token(TokenKind Kind, string Value);
 
 public class Tokenizer(string source)
 {
@@ -41,7 +41,7 @@ public class Tokenizer(string source)
 
     public List<Token> Tokenize()
     {
-        while (_pos < _source.Length)
+        while (!IsEof())
         {
             if (IsSkippable(_source[_pos]))
             {
@@ -49,7 +49,15 @@ public class Tokenizer(string source)
                 continue;
             }
 
+            Token? current = ParseNumber();
+            current ??= ParseParentheses();
+            current ??= ParseBinaryOperator();
+            current ??= ParseFunction();
 
+            if (current is null)
+                _pos++;
+            else
+                _tokens.Add(current);
         }
 
         return _tokens;
