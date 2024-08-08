@@ -26,7 +26,11 @@ public record Token(TokenKind Kind, string value);
 
 public class Tokenizer(string source)
 {
-    private static ImmutableHashSet<char> numberSign = ['+', '-'];
+    private static readonly ImmutableHashSet<char> numberSign = ['+', '-'];
+    private static readonly ImmutableHashSet<char> scientificNotationSeparator = ['e', 'E'];
+    const char decimalSeparator = '.';
+    const char openingParenthese = '(';
+    const char closingParenthese = ')';
 
     private string _source = source;
     private int _pos = 0;
@@ -50,9 +54,6 @@ public class Tokenizer(string source)
 
     public Token? ParseNumber()
     {
-        const char decimalSeparator = '.';
-        ImmutableHashSet<char> scientificNotationSeparator = ['e', 'E'];
-
         if (!IsDigit(At()))
             return null;
 
@@ -95,6 +96,22 @@ public class Tokenizer(string source)
         result = new Token(TokenKind.Number, _source[start..pos]);
         _pos = pos;
         return result;
+    }
+
+    public Token? ParseParentheses()
+    {
+        if (At() == openingParenthese)
+        {
+            _pos++;
+            return new(TokenKind.OpeningParenthese, openingParenthese.ToString());
+        }
+        else if (At() == closingParenthese)
+        {
+            _pos++;
+            return new(TokenKind.ClosingParenthese, closingParenthese.ToString());
+        }
+
+        return null;
     }
 
     private char At() => _pos >= _source.Length ? char.MinValue : _source[_pos];

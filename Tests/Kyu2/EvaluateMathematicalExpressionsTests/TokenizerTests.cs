@@ -20,4 +20,18 @@ public class TokenizerTests
         Assert.Equal(expected, actual?.value);
         Assert.Equal(TokenKind.Number, actual?.Kind);
     }
+
+    [Theory]
+    [InlineData("(8131)", "(")]
+    [InlineData(")dsds", ")")]
+    [InlineData("123()", null)]
+    public void ParseParentheses_ReturnsOnlyParenthese(string input, string? expected)
+    {
+        var tokenizer = new Tokenizer(input);
+
+        var actual = tokenizer.ParseParentheses();
+
+        Assert.Equal(expected, actual?.value);
+        Assert.True(expected == null || actual?.Kind == TokenKind.OpeningParenthese || actual?.Kind == TokenKind.ClosingParenthese);
+    }
 }
