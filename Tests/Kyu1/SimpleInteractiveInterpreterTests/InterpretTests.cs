@@ -3,6 +3,51 @@
 namespace Tests.Kyu1.SimpleInteractiveInterpreterTests;
 public class InterpretTests
 {
+    public static TheoryData<List<string>, List<string>> GetVariablesAssignmentData()
+    {
+        return new()
+        {
+            {
+                new()
+                {
+                    "a = 2",
+                    "b = 3",
+                    "a + b"
+                },
+                new()
+                {
+                    "2",
+                    "3",
+                    "5"
+                }
+            },
+            {
+                new()
+                {
+                    "x + 7",
+                    "x + 6"
+                },
+                new()
+                {
+                    "7",
+                    "13"
+                }
+            },
+            {
+                new()
+                {
+                    "x = y = 2 + 2",
+                    "(x * y)"
+                },
+                new()
+                {
+                    "4",
+                    "16"
+                }
+            }
+        };
+    }
+
     [Theory]
     [InlineData("10 + 3 + 7", "20")]
     [InlineData("1", "1")]
@@ -21,5 +66,18 @@ public class InterpretTests
         var actual = interpreter.input(input);
 
         Assert.Equal(expected, actual.ToString());
+    }
+
+    [Theory]
+    [MemberData(nameof(GetVariablesAssignmentData))]
+    public void Intepreter_RemembersAssignedVariables(List<string> inputs, List<string> expected)
+    {
+        var interpreter = new Interpreter();
+        var results = new List<string>();
+
+        foreach (var line in inputs)
+            results.Add(interpreter.input(line).ToString() ?? string.Empty);
+
+        Assert.Equal(expected, results);
     }
 }
