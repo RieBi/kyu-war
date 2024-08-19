@@ -21,7 +21,7 @@ public partial class Interpreter
         return tokens;
     }
 
-    [GeneratedRegex(@"=>|[-+*/%=\\(\\)]|[A-Za-z_][A-Za-z0-9_]*|[0-9]+\.?[0-9]+")]
+    [GeneratedRegex(@"=>|[-+*/%=\\(\\)]|[A-Za-z_][A-Za-z0-9_]*|[0-9]+(\.?[0-9]+)?")]
     private static partial Regex MyRegex();
 }
 
@@ -31,7 +31,7 @@ public class Parser
     private int _pos = 0;
 
     private readonly HashSet<string> multiplicationOperators = new() { "*", "/", "%" };
-    private readonly HashSet<string> additionOperators = new() { "+", "- " };
+    private readonly HashSet<string> additionOperators = new() { "+", "-" };
 
     public Parser(List<string> tokens)
     {
@@ -84,9 +84,9 @@ public class Parser
 
     private bool IsNumber(string token, out double result) => double.TryParse(token, out result);
 
-    private string At() => _tokens[_pos];
+    private string At() => _pos < _tokens.Count ? _tokens[_pos] : string.Empty;
 
-    private string Next() => _tokens[_pos++];
+    private string Next() => _pos < _tokens.Count ? _tokens[_pos++] : string.Empty;
 }
 
 public interface IParserNode
