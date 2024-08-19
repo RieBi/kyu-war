@@ -1,5 +1,6 @@
 ﻿namespace InterpreterKata;
 
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -41,15 +42,22 @@ public class Parser
     public double CalculateResult()
     {
         _pos = 0;
-        var result = ParseAdditionBinaryExpression();
+        var result = ParseAnyExpression();
         return result.GetResult();
     }
 
-    private ValueNode ParseConstantExpression()
+    private IParserNode ParseConstantExpression()
     {
-        var number = double.Parse(Next());
-        var node = new ValueNode() { Value = number };
-        return node;
+        var token = Next();
+
+        if (double.TryParse(token, out var result))
+        {
+            return new ValueNode() { Value = result };
+        }
+        else
+        {
+            return new IdentifierNode(token);
+        }
     }
 
     private IParserNode ParseMultiplicationBinaryExpression()
@@ -82,6 +90,24 @@ public class Parser
         return left;
     }
 
+    private IParserNode ParseAssignmentExpression()
+    {
+        var left = ParseAdditionBinaryExpression();
+
+        if (At() == "=" && left is IdentifierNode identifierLeft)
+        {
+            Next();
+
+            var right = ParseAssignmentExpression();
+
+            left = new AssignmentNode(identifierLeft, right);
+        }
+
+        return left;
+    }
+
+    private IParserNode ParseAnyExpression() => ParseAssignmentExpression();
+
     private bool IsNumber(string token, out double result) => double.TryParse(token, out result);
 
     private string At() => _pos < _tokens.Count ? _tokens[_pos] : string.Empty;
@@ -99,6 +125,18 @@ public class ValueNode : IParserNode
     public double Value { get; set; }
 
     public double GetResult() => Value;
+}
+
+public class IdentifierNode : IParserNode
+{
+    public IdentifierNode(string identifier)
+    {
+        Identifier = identifier;
+    }
+
+    public string Identifier { get; set; }
+
+    public double GetResult() => throw new NotImplementedException();
 }
 
 public class BinaryExpressionNode : IParserNode
@@ -135,13 +173,13 @@ public class BinaryExpressionNode : IParserNode
 
 public class AssignmentNode : IParserNode
 {
-    public AssignmentNode(string identifier, IParserNode rightHandSide)
+    public AssignmentNode(IdentifierNode identifier, IParserNode rightHandSide)
     {
         Identifier = identifier;
         RightHandSide = rightHandSide;
     }
 
-    public string Identifier { get; set; }
+    public IdentifierNode Identifier { get; set; }
     public IParserNode RightHandSide { get; set; }
 
     public double GetResult() => RightHandSide.GetResult();
