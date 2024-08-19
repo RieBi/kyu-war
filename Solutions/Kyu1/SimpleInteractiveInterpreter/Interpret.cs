@@ -46,6 +46,18 @@ public class Parser
         return result.GetResult();
     }
 
+    private IParserNode ParseParentheses()
+    {
+        var node = ParseAnyExpression();
+
+        if (At() != ")")
+            throw new InvalidOperationException("Unmatched parenthese found");
+
+        Next();
+
+        return node;
+    }
+
     private IParserNode ParseConstantExpression()
     {
         var token = Next();
@@ -53,6 +65,10 @@ public class Parser
         if (double.TryParse(token, out var result))
         {
             return new ValueNode() { Value = result };
+        }
+        else if (token == "(")
+        {
+            return ParseParentheses();
         }
         else
         {

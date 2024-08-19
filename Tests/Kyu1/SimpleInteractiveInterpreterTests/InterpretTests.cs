@@ -12,6 +12,8 @@ public class InterpretTests
     [InlineData("a = b = c = 5", "5")]
     [InlineData("a = 5 + (b = 77 - (c = 11 + 2))", "69")]
     [InlineData("x = 13 + (y = 3)", "16")]
+    [InlineData("(2+2)*2", "8")]
+    [InlineData("(((2-1))+1)/1", "2")]
     public void Interpreter_EvaluatesExpressionLineCorrectly(string input, string expected)
     {
         var interpreter = new Interpreter();
