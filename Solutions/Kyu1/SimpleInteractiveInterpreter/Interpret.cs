@@ -8,7 +8,8 @@ public partial class Interpreter
     public double? input(string input)
     {
         var tokens = tokenize(input);
-        return null;
+        var parser = new Parser(tokens);
+        return parser.CalculateResult();
     }
 
     private List<string> tokenize(string input)
@@ -29,23 +30,56 @@ public class Parser
     private readonly List<string> _tokens;
     private int _pos = 0;
 
+    private readonly HashSet<string> multiplicationOperators = new() { "*", "/", "%" };
+    private readonly HashSet<string> additionOperators = new() { "+", "- " };
+
     public Parser(List<string> tokens)
     {
         _tokens = tokens;
     }
 
-    public void ParseExpression()
+    public double CalculateResult()
     {
-        var cur = _tokens[_pos++];
+        _pos = 0;
+        var result = ParseAdditionBinaryExpression();
+        return result.GetResult();
+    }
 
-        IParserNode curNode;
+    private ValueNode ParseConstantExpression()
+    {
+        var number = double.Parse(Next());
+        var node = new ValueNode() { Value = number };
+        return node;
+    }
 
-        if (IsNumber(cur, out var value))
+    private IParserNode ParseMultiplicationBinaryExpression()
+    {
+        IParserNode left = ParseConstantExpression();
+        
+        while (multiplicationOperators.Contains(At()))
         {
-            var node = new ValueNode();
-            node.Value = value;
-            curNode = node;
+            var op = Next();
+            var right = ParseConstantExpression();
+
+            left = new BinaryExpressionNode(left, right, op);
         }
+
+        return left;
+    }
+
+    private IParserNode ParseAdditionBinaryExpression()
+    {
+        var left = ParseMultiplicationBinaryExpression();
+
+        while (additionOperators.Contains(At()))
+        {
+            var op = Next();
+            var right = ParseMultiplicationBinaryExpression();
+
+            left = new BinaryExpressionNode(left, right, op);
+        }
+
+        return left;
     }
 
     private bool IsNumber(string token, out double result) => double.TryParse(token, out result);
