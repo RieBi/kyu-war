@@ -2,15 +2,23 @@
 
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 public partial class Interpreter
 {
+    private Parser _parser;
+
+    public Interpreter()
+    {
+        _parser = new Parser();
+    }
+
     public double? input(string input)
     {
         var tokens = tokenize(input);
-        var parser = new Parser(tokens);
-        return parser.CalculateResult();
+        return _parser.CalculateResult(tokens);
     }
 
     private List<string> tokenize(string input)
@@ -28,22 +36,22 @@ public partial class Interpreter
 
 public class Parser
 {
-    private readonly List<string> _tokens;
+    private List<string> _tokens = new();
     private int _pos = 0;
 
     private readonly HashSet<string> multiplicationOperators = new() { "*", "/", "%" };
     private readonly HashSet<string> additionOperators = new() { "+", "-" };
 
-    public Parser(List<string> tokens)
+    private readonly State state = new();
+
+    public double CalculateResult(List<string> tokens)
     {
         _tokens = tokens;
-    }
-
-    public double CalculateResult()
-    {
         _pos = 0;
+
         var result = ParseAnyExpression();
-        return result.GetResult();
+
+        return result.GetResult(state);
     }
 
     private IParserNode ParseParentheses()
@@ -56,6 +64,23 @@ public class Parser
         Next();
 
         return node;
+    }
+
+    private IParserNode ParseIdentifier(string token)
+    {
+        if (state.funcs.TryGetValue(token, out var func))
+        {
+            var paramsCount = func.Parameters.Count;
+
+            var arguments = new List<IParserNode>();
+            for (int i = 0; i < paramsCount; i++)
+                arguments.Add(ParseAssignmentExpression());
+
+            var funcInvocation = new FunctionInvocationNode(token, arguments);
+            return funcInvocation;
+        }
+        else
+            return new IdentifierNode(token);
     }
 
     private IParserNode ParseConstantExpression()
@@ -72,7 +97,7 @@ public class Parser
         }
         else
         {
-            return new IdentifierNode(token);
+            return ParseIdentifier(token);
         }
     }
 
@@ -122,18 +147,73 @@ public class Parser
         return left;
     }
 
-    private IParserNode ParseAnyExpression() => ParseAssignmentExpression();
+    private IParserNode ParseFunctionDeclaration()
+    {
+        if (At() != "fn")
+            return ParseAssignmentExpression();
 
-    private bool IsNumber(string token, out double result) => double.TryParse(token, out result);
+        Next();
+
+        var funcName = Next();
+        var parameters = new List<string>();
+
+        while (At() != "=>")
+            parameters.Add(Next());
+
+        if (Next() != "=>")
+            throw new InvalidOperationException("Function declaration missed => operator");
+
+        var funcBody = ParseAssignmentExpression();
+
+        var funcNode = new FunctionDeclarationNode(funcName, parameters, funcBody);
+        return funcNode;
+    }
+
+    private IParserNode ParseAnyExpression() => ParseAssignmentExpression();
 
     private string At() => _pos < _tokens.Count ? _tokens[_pos] : string.Empty;
 
     private string Next() => _pos < _tokens.Count ? _tokens[_pos++] : string.Empty;
 }
 
+public class State
+{
+    internal Dictionary<string, double> values = [];
+    internal Dictionary<string, FunctionDeclarationNode> funcs = [];
+
+    public void AssignVariable(string identifier, double value)
+    {
+        values[identifier] = value;
+    }
+
+    public void AssignFunction(FunctionDeclarationNode function) => funcs[function.Identifier] = function;
+
+    public double GetVariableValue(string identifier)
+    {
+        if (!values.TryGetValue(identifier, out var value))
+            throw new InvalidOperationException("Variable is not declared");
+
+        return value;
+    }
+
+    public double GetMethodResult(string identifier, List<double> arguments)
+    {
+        if (!funcs.TryGetValue(identifier, out var value))
+            throw new InvalidOperationException("Function is not declared");
+
+        var localState = new State();
+        localState.funcs = funcs;
+
+        for (int i = 0; i < value.Parameters.Count; i++)
+            localState.AssignVariable(value.Parameters[i], arguments[i]);
+
+        return value.BodyNode.GetResult(localState);
+    }
+}
+
 public interface IParserNode
 {
-    double GetResult();
+    double GetResult(State state);
 }
 
 public class ValueNode : IParserNode
@@ -141,6 +221,8 @@ public class ValueNode : IParserNode
     public double Value { get; set; }
 
     public double GetResult() => Value;
+
+    public double GetResult(State state) => GetResult();
 }
 
 public class IdentifierNode : IParserNode
@@ -152,7 +234,7 @@ public class IdentifierNode : IParserNode
 
     public string Identifier { get; set; }
 
-    public double GetResult() => throw new NotImplementedException();
+    public double GetResult(State state) => state.GetVariableValue(Identifier);
 }
 
 public class BinaryExpressionNode : IParserNode
@@ -168,10 +250,10 @@ public class BinaryExpressionNode : IParserNode
     public IParserNode RightChild { get; set; }
     public string Operator { get; set; }
 
-    public double GetResult()
+    public double GetResult(State state)
     {
-        var leftValue = LeftChild.GetResult();
-        var rightValue = RightChild.GetResult();
+        var leftValue = LeftChild.GetResult(state);
+        var rightValue = RightChild.GetResult(state);
 
         var result = Operator switch
         {
@@ -198,5 +280,50 @@ public class AssignmentNode : IParserNode
     public IdentifierNode Identifier { get; set; }
     public IParserNode RightHandSide { get; set; }
 
-    public double GetResult() => RightHandSide.GetResult();
+    public double GetResult(State state)
+    {
+        var rightResult = RightHandSide.GetResult(state);
+        state.AssignVariable(Identifier.Identifier, rightResult);
+
+        return rightResult;
+    }
+}
+
+public class FunctionDeclarationNode : IParserNode
+{
+    public FunctionDeclarationNode(string identifier, List<string> parameters, IParserNode bodyNode)
+    {
+        Identifier = identifier;
+        Parameters = parameters;
+        BodyNode = bodyNode;
+    }
+
+    public string Identifier { get; set; }
+    public List<string> Parameters { get; set; }
+    public IParserNode BodyNode { get; set; }
+
+    public double GetResult(State state)
+    {
+        state.AssignFunction(this);
+
+        return double.NaN;
+    }
+}
+
+public class FunctionInvocationNode : IParserNode
+{
+    public string FunctionIdentifier { get; set; }
+    public List<IParserNode> Arguments { get; set;}
+
+    public FunctionInvocationNode(string functionIdentifier, List<IParserNode> arguments)
+    {
+        FunctionIdentifier = functionIdentifier;
+        Arguments = arguments;
+    }
+
+    public double GetResult(State state)
+    {
+        var processedArguments = Arguments.Select(f => f.GetResult(state)).ToList();
+        return state.GetMethodResult(FunctionIdentifier, processedArguments);
+    }
 }
