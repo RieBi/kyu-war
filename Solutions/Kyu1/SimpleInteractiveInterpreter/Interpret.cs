@@ -50,6 +50,9 @@ public class Parser
 
         var result = ParseAnyExpression();
 
+        if (_pos != _tokens.Count)
+            throw new InvalidOperationException("Unused trailing tokens detected");
+
         return result.GetResult(state);
     }
 
@@ -182,10 +185,19 @@ public class State
 
     public void AssignVariable(string identifier, double value)
     {
+        if (funcs.ContainsKey(identifier))
+            throw new InvalidOperationException("Cannot assign variable: function already exists");
+
         values[identifier] = value;
     }
 
-    public void AssignFunction(FunctionDeclarationNode function) => funcs[function.Identifier] = function;
+    public void AssignFunction(FunctionDeclarationNode function)
+    {
+        if (values.ContainsKey(function.Identifier))
+            throw new InvalidOperationException("Cannot assign function: variable already exists");
+
+        funcs[function.Identifier] = function;
+    }
 
     public double GetVariableValue(string identifier)
     {

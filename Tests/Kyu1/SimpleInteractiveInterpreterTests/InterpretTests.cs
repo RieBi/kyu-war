@@ -167,8 +167,6 @@ public class InterpretTests
     [InlineData("x = 13 + (y = 3)", "16")]
     [InlineData("(2+2)*2", "8")]
     [InlineData("(((2-1))+1)/1", "2")]
-    [InlineData("8 * 8 2 + 2", "64")]
-    [InlineData("2 + 2 8 * 8", "4")]
     public void Interpreter_EvaluatesExpressionLineCorrectly(string input, string expected)
     {
         var interpreter = new Interpreter();
