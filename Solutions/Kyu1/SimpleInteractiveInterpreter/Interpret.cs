@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 
 public partial class Interpreter
 {
-    private Parser _parser;
+    private readonly Parser _parser;
 
     public Interpreter()
     {
@@ -26,14 +26,11 @@ public partial class Interpreter
     private List<string> tokenize(string input)
     {
         var tokens = new List<string>();
-        var rgxMain = MyRegex();
+        var rgxMain = new Regex(@"=>|[-+*/%=\\(\\)]|[A-Za-z_][A-Za-z0-9_]*|[0-9]+(\.?[0-9]+)?");
         MatchCollection matches = rgxMain.Matches(input);
         foreach (Match m in matches) tokens.Add(m.Groups[0].Value);
         return tokens;
     }
-
-    [GeneratedRegex(@"=>|[-+*/%=\\(\\)]|[A-Za-z_][A-Za-z0-9_]*|[0-9]+(\.?[0-9]+)?")]
-    private static partial Regex MyRegex();
 }
 
 public class Parser
@@ -180,8 +177,8 @@ public class Parser
 
 public class State
 {
-    internal Dictionary<string, double> values = [];
-    internal Dictionary<string, FunctionDeclarationNode> funcs = [];
+    internal Dictionary<string, double> values = new();
+    internal Dictionary<string, FunctionDeclarationNode> funcs = new();
 
     public void AssignVariable(string identifier, double value)
     {
@@ -203,8 +200,10 @@ public class State
         if (!funcs.TryGetValue(identifier, out var value))
             throw new InvalidOperationException("Function is not declared");
 
-        var localState = new State();
-        localState.funcs = funcs;
+        var localState = new State
+        {
+            funcs = funcs
+        };
 
         for (int i = 0; i < value.Parameters.Count; i++)
             localState.AssignVariable(value.Parameters[i], arguments[i]);
