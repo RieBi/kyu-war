@@ -64,6 +64,61 @@ public class InterpretTests
         };
     }
 
+    public static TheoryData<List<string>, List<string>> GetFunctionsEvaluationData()
+    {
+        return new()
+        {
+            {
+                new()
+                {
+                    "fn avg x y => (x + y) / 2",
+                    "a = 2",
+                    "a = 4",
+                    "avg a b"
+                },
+                new()
+                {
+                    string.Empty,
+                    "2",
+                    "4",
+                    "3"
+                }
+            },
+            {
+                new()
+                {
+                    "fn echo x => x",
+                    "fn add x y => x + y",
+                    "add echo 4 echo 3"
+                },
+                new()
+                {
+                    string.Empty,
+                    string.Empty,
+                    "7"
+                }
+            },
+            {
+                new()
+                {
+                    "fn inc x => x + 1",
+                    "a = 0",
+                    "a = inc a",
+                    "fn inc x => x + 2",
+                    "a = inc a"
+                },
+                new()
+                {
+                    string.Empty,
+                    "0",
+                    "1",
+                    string.Empty,
+                    "3"
+                }
+            }
+        };
+    }
+
     [Theory]
     [InlineData("10 + 3 + 7", "20")]
     [InlineData("1", "1")]
@@ -88,7 +143,8 @@ public class InterpretTests
 
     [Theory]
     [MemberData(nameof(GetVariablesAssignmentData))]
-    public void Intepreter_RemembersAssignedVariables(List<string> inputs, List<string> expected)
+    [MemberData(nameof(GetFunctionsEvaluationData))]
+    public void Intepreter_UsesState(List<string> inputs, List<string> expected)
     {
         var interpreter = new Interpreter();
         var results = new List<string>();
