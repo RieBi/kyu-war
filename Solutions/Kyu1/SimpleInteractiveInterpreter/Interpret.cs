@@ -18,7 +18,9 @@ public partial class Interpreter
     public double? input(string input)
     {
         var tokens = tokenize(input);
-        return _parser.CalculateResult(tokens);
+        var result = _parser.CalculateResult(tokens);
+
+        return double.IsNaN(result) ? null : result;
     }
 
     private List<string> tokenize(string input)
@@ -169,7 +171,7 @@ public class Parser
         return funcNode;
     }
 
-    private IParserNode ParseAnyExpression() => ParseAssignmentExpression();
+    private IParserNode ParseAnyExpression() => ParseFunctionDeclaration();
 
     private string At() => _pos < _tokens.Count ? _tokens[_pos] : string.Empty;
 

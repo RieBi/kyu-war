@@ -73,7 +73,7 @@ public class InterpretTests
                 {
                     "fn avg x y => (x + y) / 2",
                     "a = 2",
-                    "a = 4",
+                    "b = 4",
                     "avg a b"
                 },
                 new()
@@ -143,8 +143,7 @@ public class InterpretTests
 
     [Theory]
     [MemberData(nameof(GetVariablesAssignmentData))]
-    [MemberData(nameof(GetFunctionsEvaluationData))]
-    public void Intepreter_UsesState(List<string> inputs, List<string> expected)
+    public void Interpreter_UsesStateForVariables(List<string> inputs, List<string> expected)
     {
         var interpreter = new Interpreter();
         var results = new List<string>();
@@ -154,4 +153,9 @@ public class InterpretTests
 
         Assert.Equal(expected, results);
     }
+
+    [Theory]
+    [MemberData(nameof(GetFunctionsEvaluationData))]
+    public void Interpreter_UsesStateForFunctions(List<string> inputs, List<string> expected) =>
+        Interpreter_UsesStateForVariables(inputs, expected);
 }
