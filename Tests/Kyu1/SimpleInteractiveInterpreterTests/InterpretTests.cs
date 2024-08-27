@@ -119,6 +119,43 @@ public class InterpretTests
         };
     }
 
+    public static TheoryData<List<string>, List<string?>> GetErrorsData()
+    {
+        return new()
+        {
+            {
+                new()
+                {
+                    "fn avg x y => (x + y) / 2",
+                    "avg 4 2",
+                    "avg 7",
+                    "avg 7 2 4"
+                },
+                new()
+                {
+                    string.Empty,
+                    "3",
+                    null,
+                    null
+                }
+            },
+            {
+                new()
+                {
+                    "fn x x => 0",
+                    "fn avg => 0",
+                    "avg = 5"
+                },
+                new()
+                {
+                    string.Empty,
+                    string.Empty,
+                    null
+                }
+            }
+        };
+    }
+
     [Theory]
     [InlineData("10 + 3 + 7", "20")]
     [InlineData("1", "1")]
@@ -158,4 +195,26 @@ public class InterpretTests
     [MemberData(nameof(GetFunctionsEvaluationData))]
     public void Interpreter_UsesStateForFunctions(List<string> inputs, List<string> expected) =>
         Interpreter_UsesStateForVariables(inputs, expected);
+
+    [Theory]
+    [MemberData(nameof(GetErrorsData))]
+    public void Interpreter_ThrowsCorrectExceptions(List<string> inputs, List<string?> expected)
+    {
+        var interpreter = new Interpreter();
+        var results = new List<string?>();
+
+        foreach (var line in inputs)
+        {
+            try
+            {
+                results.Add(interpreter.input(line).ToString() ?? string.Empty);
+            }
+            catch
+            {
+                results.Add(null);
+            }
+        }
+
+        Assert.Equal(expected, results);
+    }
 }
