@@ -1,4 +1,4 @@
-﻿namespace Evaluation;
+﻿namespace Solutions.Kyu2.EvaluateMathematicalExpressions;
 
 using System;
 using System.Collections.Generic;
