@@ -1,4 +1,4 @@
-﻿namespace InterpreterKata;
+﻿namespace Solutions.Kyu1.SimpleInteractiveInterpreter;
 
 using System;
 using System.Collections.Generic;
@@ -106,7 +106,7 @@ public class Parser
     private IParserNode ParseMultiplicationBinaryExpression()
     {
         IParserNode left = ParseConstantExpression();
-        
+
         while (multiplicationOperators.Contains(At()))
         {
             var op = Next();
@@ -326,7 +326,7 @@ public class FunctionDeclarationNode : IParserNode
 public class FunctionInvocationNode : IParserNode
 {
     public string FunctionIdentifier { get; set; }
-    public List<IParserNode> Arguments { get; set;}
+    public List<IParserNode> Arguments { get; set; }
 
     public FunctionInvocationNode(string functionIdentifier, List<IParserNode> arguments)
     {

@@ -1,7 +1,7 @@
-﻿using InterpreterKata;
+﻿using Solutions.Kyu1.SimpleInteractiveInterpreter;
 
-namespace Tests.Kyu1.SimpleInteractiveInterpreterTests;
-public class InterpretTests
+namespace Tests.Kyu1;
+public class SimpleInteractiveInterpreterTests
 {
     public static TheoryData<List<string>, List<string>> GetVariablesAssignmentData()
     {
