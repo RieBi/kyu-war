@@ -33,4 +33,61 @@ public class Compiler
     }
 }
 
-public class Ast;
+public class Ast
+{
+    public string Operation { get; set; }
+
+    public Ast(string operation)
+    {
+        Operation = operation;
+    }
+
+    public string op() => Operation;
+}
+
+public class BinOp : Ast
+{
+    public Ast LeftChild { get; set; }
+    public Ast RightChild { get; set; }
+
+    public BinOp(string operation, Ast leftChild, Ast rightChild) : base(operation)
+    {
+        LeftChild = leftChild;
+        RightChild = rightChild;
+    }
+
+    public Ast a() => LeftChild;
+
+    public Ast b() => RightChild;
+}
+
+public abstract class UnOp : Ast
+{
+    protected UnOp(string operation) : base(operation) { }
+
+    public abstract int n();
+}
+
+public class ArgOp : UnOp
+{
+    public int ArgumentIndex { get; set; }
+
+    public ArgOp(int argumentIndex) : base("arg")
+    {
+        ArgumentIndex = argumentIndex;
+    }
+
+    public override int n() => ArgumentIndex;
+}
+
+public class ImmOp : UnOp
+{
+    public int Value { get; set; }
+
+    public ImmOp(int value) : base("imm")
+    {
+        Value = value;
+    }
+
+    public override int n() => Value;
+}
