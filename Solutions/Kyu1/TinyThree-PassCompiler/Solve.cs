@@ -3,7 +3,6 @@
 using System;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
-using System.Threading;
 
 public class Compiler
 {
@@ -17,7 +16,7 @@ public class Compiler
 
     public Ast pass2(Ast ast)
     {
-        return null;
+        return ast.Simplify();
     }
 
 
@@ -150,6 +149,8 @@ public class Ast
     }
 
     public string op() => Operation;
+
+    public virtual Ast Simplify() => this;
 }
 
 public class BinOp : Ast
@@ -166,6 +167,29 @@ public class BinOp : Ast
     public Ast a() => LeftChild;
 
     public Ast b() => RightChild;
+
+    public override Ast Simplify()
+    {
+        LeftChild = LeftChild.Simplify();
+        RightChild = RightChild.Simplify();
+
+        if (LeftChild is ImmOp left && RightChild is ImmOp right)
+        {
+            var result = Operation switch
+            {
+                "+" => left.Value + right.Value,
+                "-" => left.Value - right.Value,
+                "*" => left.Value * right.Value,
+                "/" => left.Value / right.Value,
+                _ => throw new InvalidOperationException($"Can't simplify unknown operation '{Operation}'")
+            };
+
+            var newNode = new ImmOp(result);
+            return newNode;
+        }
+
+        return this;
+    }
 }
 
 public abstract class UnOp : Ast
