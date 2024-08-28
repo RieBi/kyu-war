@@ -22,7 +22,7 @@ public class Compiler
 
     public List<string> pass3(Ast ast)
     {
-        return null;
+        return ast.Compile();
     }
 
     private List<string> tokenize(string input)
@@ -70,13 +70,15 @@ public class Parser
         }
         else if (int.TryParse(token, out var number))
         {
-            return new ImmOp(number);
+            Next();
+            return new UnOp("imm", number);
         }
         else
         {
             if (parameters.TryGetValue(token, out var argument))
             {
-                return new ArgOp(argument);
+                Next();
+                return new UnOp("arg", argument);
             }
 
             throw new InvalidOperationException($"Parameter '{token}' does not exist.");
@@ -139,24 +141,82 @@ public class Parser
     }
 }
 
-public class Ast
+public static class ExtensionMethods
 {
-    public string Operation { get; set; }
+    public static Ast Simplify(this Ast node)
+    {
+        if (node is UnOp)
+            return node;
 
-    public Ast(string operation)
+        var binOp = node as BinOp ?? throw new InvalidOperationException();
+
+        var LeftChild = binOp.a().Simplify();
+        var RightChild = binOp.b().Simplify();
+
+        if (LeftChild is UnOp left && RightChild is UnOp right && left.op() == "imm" && right.op() == "imm")
+        {
+            var result = binOp.op() switch
+            {
+                "+" => left.n() + right.n(),
+                "-" => left.n() - right.n(),
+                "*" => left.n() * right.n(),
+                "/" => left.n() / right.n(),
+                _ => throw new InvalidOperationException($"Can't simplify unknown operation '{binOp.op()}'")
+            };
+
+            var newNode = new UnOp("imm", result);
+            return newNode;
+        }
+
+        return binOp;
+    }
+
+    public static List<string> Compile(this Ast node)
+    {
+        if (node is UnOp unOp)
+            return new() { $"{(unOp.op() == "arg" ? "AR" : "IM")} {unOp.n()}" };
+
+        var binOp = node as BinOp ?? throw new InvalidOperationException();
+
+        var result = new List<string>();
+
+        result.AddRange(binOp.a().Compile());
+        result.Add("PU");
+        result.AddRange(binOp.b().Compile());
+        result.Add("SW");
+        result.Add("PO");
+
+        var operationDirective = binOp.op() switch
+        {
+            "+" => "AD",
+            "-" => "SU",
+            "*" => "MU",
+            "/" => "DI",
+            _ => throw new InvalidOperationException($"Can't compile unknown operator '{binOp.op()}'")
+        };
+
+        result.Add(operationDirective);
+
+        return result;
+    }
+}
+
+public abstract class Ast
+{
+    protected string Operation { get; set; }
+
+    protected Ast(string operation)
     {
         Operation = operation;
     }
 
     public string op() => Operation;
-
-    public virtual Ast Simplify() => this;
 }
 
 public class BinOp : Ast
 {
-    public Ast LeftChild { get; set; }
-    public Ast RightChild { get; set; }
+    private Ast LeftChild { get; set; }
+    private Ast RightChild { get; set; }
 
     public BinOp(string operation, Ast leftChild, Ast rightChild) : base(operation)
     {
@@ -167,58 +227,16 @@ public class BinOp : Ast
     public Ast a() => LeftChild;
 
     public Ast b() => RightChild;
-
-    public override Ast Simplify()
-    {
-        LeftChild = LeftChild.Simplify();
-        RightChild = RightChild.Simplify();
-
-        if (LeftChild is ImmOp left && RightChild is ImmOp right)
-        {
-            var result = Operation switch
-            {
-                "+" => left.Value + right.Value,
-                "-" => left.Value - right.Value,
-                "*" => left.Value * right.Value,
-                "/" => left.Value / right.Value,
-                _ => throw new InvalidOperationException($"Can't simplify unknown operation '{Operation}'")
-            };
-
-            var newNode = new ImmOp(result);
-            return newNode;
-        }
-
-        return this;
-    }
 }
 
-public abstract class UnOp : Ast
+public class UnOp : Ast
 {
-    protected UnOp(string operation) : base(operation) { }
+    private readonly int Value;
 
-    public abstract int n();
-}
-
-public class ArgOp : UnOp
-{
-    public int ArgumentIndex { get; set; }
-
-    public ArgOp(int argumentIndex) : base("arg")
-    {
-        ArgumentIndex = argumentIndex;
-    }
-
-    public override int n() => ArgumentIndex;
-}
-
-public class ImmOp : UnOp
-{
-    public int Value { get; set; }
-
-    public ImmOp(int value) : base("imm")
+    public UnOp(string operation, int value) : base(operation)
     {
         Value = value;
     }
 
-    public override int n() => Value;
+    public int n() => Value;
 }
