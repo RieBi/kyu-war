@@ -3,13 +3,16 @@
 using System;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
+using System.Threading;
 
 public class Compiler
 {
     public Ast pass1(string prog)
     {
         List<string> tokens = tokenize(prog);
-        return null;
+
+        var parser = new Parser(tokens);
+        return parser.Parse();
     }
 
     public Ast pass2(Ast ast)
@@ -30,6 +33,110 @@ public class Compiler
         MatchCollection matches = rgxMain.Matches(input);
         foreach (Match m in matches) tokens.Add(m.Groups[0].Value);
         return tokens;
+    }
+}
+
+public class Parser
+{
+    private int pos = 0;
+    private readonly List<string> tokens;
+    private Dictionary<string, int> parameters;
+    private int paramCount;
+
+    public Parser(List<string> tokens)
+    {
+        this.tokens = tokens;
+    }
+
+    public Ast Parse()
+    {
+        pos = 0;
+        parameters = new();
+        paramCount = 0;
+
+        return ParseFunctionDeclaration();
+    }
+
+    public Ast ParseBasicExpression()
+    {
+        var token = At();
+
+        if (token == "(")
+        {
+            Expect("(");
+            var expression = ParseAdditionExpression();
+            Expect(")");
+
+            return expression;
+        }
+        else if (int.TryParse(token, out var number))
+        {
+            return new ImmOp(number);
+        }
+        else
+        {
+            if (parameters.TryGetValue(token, out var argument))
+            {
+                return new ArgOp(argument);
+            }
+
+            throw new InvalidOperationException($"Parameter '{token}' does not exist.");
+        }
+    }
+
+    public Ast ParseMultiplicationExpression()
+    {
+        var left = ParseBasicExpression();
+
+        while (At() == "*" || At() == "/")
+        {
+            var op = Next();
+
+            var right = ParseMultiplicationExpression();
+            left = new BinOp(op, left, right);
+        }
+
+        return left;
+    }
+
+    public Ast ParseAdditionExpression()
+    {
+        var left = ParseMultiplicationExpression();
+
+        while (At() == "+" || At() == "-")
+        {
+            var op = Next();
+
+            var right = ParseAdditionExpression();
+            left = new BinOp(op, left, right);
+        }
+
+        return left;
+    }
+
+    public Ast ParseFunctionDeclaration()
+    {
+        Expect("[");
+
+        while (At() != "]")
+        {
+            parameters[Next()] = paramCount++;
+        }
+
+        Expect("]");
+
+        return ParseAdditionExpression();
+    }
+
+    private string At() => pos < tokens.Count ? tokens[pos] : string.Empty;
+
+    private string Next() => pos < tokens.Count ? tokens[pos++] : string.Empty;
+
+    private void Expect(string token)
+    {
+        var next = Next();
+        if (next != token)
+            throw new InvalidOperationException($"Expected '{token}', got: '{next}'.");
     }
 }
 
