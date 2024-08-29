@@ -93,7 +93,7 @@ public class Parser
         {
             var op = Next();
 
-            var right = ParseMultiplicationExpression();
+            var right = ParseBasicExpression();
             left = new BinOp(op, left, right);
         }
 
@@ -108,7 +108,7 @@ public class Parser
         {
             var op = Next();
 
-            var right = ParseAdditionExpression();
+            var right = ParseMultiplicationExpression();
             left = new BinOp(op, left, right);
         }
 
