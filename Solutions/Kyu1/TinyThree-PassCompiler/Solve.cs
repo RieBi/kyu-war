@@ -168,7 +168,7 @@ public static class ExtensionMethods
             return newNode;
         }
 
-        return binOp;
+        return new BinOp(node.op(), LeftChild, RightChild);
     }
 
     public static List<string> Compile(this Ast node)
